@@ -223,6 +223,19 @@ make -j4
 sudo make install
 ```
 
+### Verification Tool
+
+We've included a dependency checker script to help verify your installation:
+
+```bash
+# Run the dependency checker
+cd lio-mapping
+chmod +x scripts/check_dependencies.sh
+./scripts/check_dependencies.sh
+```
+
+This script will check for all required dependencies and provide specific installation commands for missing components.
+
 #### Step 3: Build LIO-mapping
 ```bash
 # Create catkin workspace
@@ -907,6 +920,115 @@ Matching point clouds involves:
 - **CloudCompare**: Point cloud analysis and visualization
 - **MATLAB Robotics Toolbox**: Prototyping and analysis
 - **Python libraries**: NumPy, SciPy, Open3D for experimentation
+
+---
+
+## ❓ Frequently Asked Questions (FAQ)
+
+### General Questions
+
+**Q: What's the difference between LIO-mapping and other SLAM algorithms?**
+A: LIO-mapping specifically combines LiDAR and IMU sensors using tight coupling. Unlike loose coupling approaches that process sensors separately, tight coupling optimizes both sensor measurements together, resulting in better accuracy and robustness.
+
+**Q: Can I use this with my own robot/sensor setup?**
+A: Yes! LIO-mapping is designed to work with any LiDAR + IMU combination. You'll need to:
+1. Calibrate the sensor extrinsics (relative positions)
+2. Adjust the noise parameters for your specific sensors
+3. Possibly modify topic names in launch files
+
+**Q: What LiDAR sensors are supported?**
+A: Any LiDAR that outputs ROS PointCloud2 messages. Common ones include:
+- Velodyne VLP-16/32/64
+- Ouster OS1/OS2 series  
+- Livox Horizon/Mid series
+- Robosense sensors
+
+**Q: Do I need an expensive LiDAR?**
+A: Not necessarily! While the original paper uses Velodyne sensors, the algorithm works with lower-cost sensors like:
+- RPLiDAR A3 (2D, with modifications)
+- Livox Mid-40 (~$600)
+- Ouster OS1-16 (~$3500)
+
+### Technical Questions
+
+**Q: Why is my mapping result noisy/inaccurate?**
+A: Common causes and solutions:
+1. **Poor calibration**: Re-calibrate LiDAR-IMU extrinsics
+2. **Wrong parameters**: Adjust filter sizes and noise parameters
+3. **Fast motion**: Enable deskewing, reduce playback rate
+4. **Environmental factors**: Some environments are harder (featureless areas, moving objects)
+
+**Q: Can I run this in real-time on my robot?**
+A: Yes, but consider:
+- **CPU requirements**: Real-time needs powerful CPU (i7 or better)
+- **Parameter tuning**: Increase filter sizes for speed
+- **Frame rate**: LiDAR at 10Hz is typically manageable
+
+**Q: How do I integrate GPS/other sensors?**
+A: LIO-mapping doesn't directly support GPS, but you can:
+1. Use GPS for initial localization
+2. Fuse LIO-mapping output with GPS using robot_localization package
+3. Convert between coordinate frames using standard ROS tools
+
+**Q: My system crashes with large datasets. What can I do?**
+A: Memory optimization strategies:
+1. Reduce `window_size` in config (e.g., from 12 to 8)
+2. Increase `map_filter_size` (e.g., from 0.6 to 1.0)
+3. Process data in smaller segments
+4. Use a machine with more RAM
+
+### Development Questions
+
+**Q: How can I add support for my custom sensor?**
+A: Steps to add new sensors:
+1. Create ROS driver that publishes PointCloud2 messages
+2. Add sensor specifications to config file
+3. Calibrate extrinsics between LiDAR and IMU
+4. Test with sample data
+
+**Q: Can I modify the algorithm for different applications?**
+A: Absolutely! Common modifications:
+- **Multi-robot SLAM**: Modify for data sharing between robots
+- **Online mapping**: Add real-time map saving/loading
+- **Semantic SLAM**: Integrate object detection
+- **Visual fusion**: Add camera data (significant work)
+
+**Q: How do I contribute bug fixes or improvements?**
+A: Follow the contribution guidelines:
+1. Fork the repository
+2. Create a feature branch
+3. Test your changes thoroughly
+4. Submit a pull request with clear description
+5. Engage with review feedback
+
+### Troubleshooting FAQ
+
+**Q: "Cannot connect to X server" when using Docker**
+A: Run this before starting Docker:
+```bash
+xhost +local:docker
+export DISPLAY=:0
+```
+
+**Q: ROS nodes can't find each other**
+A: Check that ROS_MASTER_URI is correct:
+```bash
+echo $ROS_MASTER_URI  # Should be http://localhost:11311
+rosnode list          # Should show active nodes
+```
+
+**Q: Build fails with "Package not found"**
+A: Ensure ROS environment is sourced:
+```bash
+source /opt/ros/melodic/setup.bash  # or your ROS version
+```
+
+**Q: Performance is very slow**
+A: Quick optimization checklist:
+- [ ] Built in Release mode: `catkin build -DCMAKE_BUILD_TYPE=Release`
+- [ ] Increased filter sizes in config file
+- [ ] Reduced window sizes in config file
+- [ ] Playing bag at slower rate: `rosbag play --rate 0.5`
 
 ---
 
